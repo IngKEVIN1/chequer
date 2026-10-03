@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Reubicación de material</title>
+  <meta name="description" content="Formato digital de movimientos de almacén">
+  <!-- Color de la barra del navegador (también en manifest.json) -->
+  <meta name="theme-color" content="#E4002B">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Reubicación">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" href="assets/icons/icon-192.png">
+  <link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- ===================== ENCABEZADO ===================== -->
+  <header class="app-encabezado">
+    <div class="container-xl app-encabezado-interno">
+      <div class="marca">
+        <!-- ===== LOGO: reemplace el archivo assets/logo.png (ruta en config.js > LOGO.RUTA) ===== -->
+        <img id="logoApp" class="marca-logo" alt="" hidden>
+        <span id="logoTexto" class="marca-texto" hidden></span>
+        <div class="marca-titulos">
+          <h1 id="tituloApp" class="app-titulo">Reubicación de material</h1>
+          <p id="subtituloApp" class="app-subtitulo">Formato digital de movimientos de almacén</p>
+        </div>
+      </div>
+      <div class="encabezado-acciones">
+        <span id="indicadorConexion" class="indicador-conexion" hidden>Sin conexión: la app sigue funcionando</span>
+        <button type="button" id="btnInstalar" class="btn btn-secundario" hidden>Instalar app</button>
+        <button type="button" id="btnNuevo" class="btn btn-secundario">Nuevo movimiento</button>
+        <button type="button" id="btnConfig" class="btn btn-secundario" aria-label="Configuración">Configuración</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container-xl app-principal">
+    <div id="zonaAvisos"></div>
+
+    <!-- ===================== DATOS GENERALES ===================== -->
+    <section class="datos-generales" aria-label="Datos del movimiento">
+      <div class="tarjeta-dato tarjeta-referencia">
+        <label for="inpReferencia" class="tarjeta-etiqueta">Referencia</label>
+        <input id="inpReferencia" type="text" class="form-control form-control-lg" inputmode="text"
+               autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Ej. 71308" enterkeyhint="next">
+      </div>
+      <div class="tarjeta-dato">
+        <label for="inpFecha" class="tarjeta-etiqueta">Fecha</label>
+        <input id="inpFecha" type="date" class="form-control form-control-lg">
+      </div>
+      <div class="tarjeta-dato">
+        <label for="inpMontacarguista" class="tarjeta-etiqueta">Montacarguista</label>
+        <input id="inpMontacarguista" type="text" class="form-control form-control-lg" autocomplete="name"
+               autocapitalize="words" placeholder="Nombre" enterkeyhint="done">
+      </div>
+    </section>
+
+    <!-- ===================== CAPTURA ===================== -->
+    <section class="acciones-captura" aria-label="Captura de productos">
+      <button type="button" id="btnEscanear" class="btn btn-escanear">
+        <svg class="icono" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7V5a1 1 0 0 1 1-1h2M17 4h2a1 1 0 0 1 1 1v2M20 17v2a1 1 0 0 1-1 1h-2M7 20H5a1 1 0 0 1-1-1v-2M7 8v8M10 8v8M13 8v8M16.5 8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <span>ESCANEAR ETIQUETA</span>
+      </button>
+      <div class="captura-secundaria">
+        <button type="button" id="btnSeleccionarFoto" class="btn btn-secundario btn-grande">Elegir foto</button>
+        <button type="button" id="btnAgregarProducto" class="btn btn-secundario btn-grande">+ AGREGAR PRODUCTO</button>
+      </div>
+    </section>
+
+    <!-- ===================== HOJA (FORMATO) ===================== -->
+    <section class="hoja" aria-labelledby="tituloFormato">
+      <div class="hoja-encabezado">
+        <h2 id="tituloFormato" class="hoja-titulo">FORMATO PARA REUBICAR MATERIAL EN ALMACÉN</h2>
+        <div class="hoja-referencia">
+          <span class="hoja-referencia-etiqueta">REFERENCIA</span>
+          <span id="espejoReferencia" class="hoja-referencia-valor">—</span>
+        </div>
+      </div>
+
+      <div class="hoja-barra">
+        <span id="contadorFilas" class="contador-filas">Sin productos</span>
+        <button type="button" id="btnDestinoMasivo" class="btn btn-secundario btn-sm-tactil" hidden>Asignar destino a filas vacías</button>
+      </div>
+
+      <div id="estadoVacio" class="estado-vacio">
+        <p class="mb-1 fw-semibold">Aún no hay productos en esta hoja.</p>
+        <p class="mb-0 text-secundario">Escanee una etiqueta o use “+ Agregar producto” para capturar manualmente.</p>
+      </div>
+
+      <div class="tabla-contenedor">
+        <table id="tablaProductos" class="tabla-hoja" hidden>
+          <thead>
+            <tr>
+              <th class="col-num" scope="col">#</th>
+              <th class="col-producto" scope="col">PRODUCTO</th>
+              <th class="col-cantidad" scope="col">CANTIDAD</th>
+              <th class="col-origen" scope="col">UBICACIÓN<br><small>ORIGEN</small></th>
+              <th class="col-a" scope="col">A</th>
+              <th class="col-destino" scope="col">UBICACIÓN<br><small>DESTINO</small></th>
+              <th class="col-comentarios" scope="col">COMENTARIOS</th>
+              <th class="col-acciones" scope="col"><span class="visually-hidden">Acciones</span></th>
+            </tr>
+          </thead>
+          <tbody id="cuerpoTabla"></tbody>
+        </table>
+      </div>
+
+      <div class="hoja-pie">
+        <div id="espejoMontacarguistaZona" class="hoja-pie-dato" role="button" tabindex="0" title="Editar montacarguista">
+          <span class="hoja-pie-etiqueta">MONTACARGUISTA:</span>
+          <span id="espejoMontacarguista" class="hoja-pie-valor"></span>
+        </div>
+        <div class="hoja-pie-dato hoja-pie-fecha">
+          <span class="hoja-pie-etiqueta">FECHA:</span>
+          <span id="espejoFecha" class="hoja-pie-valor"></span>
+        </div>
+      </div>
+    </section>
+
+    <div id="zonaValidacion" class="mt-3" aria-live="polite"></div>
+
+    <!-- ===================== ACCIONES FINALES ===================== -->
+    <section class="acciones-finales" aria-label="Exportar y enviar">
+      <button type="button" id="btnPDF" class="btn btn-primario btn-grande">GENERAR PDF</button>
+      <button type="button" id="btnExcel" class="btn btn-primario btn-grande">DESCARGAR EXCEL</button>
+      <button type="button" id="btnCorreo" class="btn btn-primario btn-grande">ENVIAR CORREO</button>
+      <button type="button" id="btnLimpiar" class="btn btn-peligro-borde btn-grande">LIMPIAR HOJA</button>
+    </section>
+
+    <!-- ===================== DETALLES DE CAPTURA ===================== -->
+    <section class="detalles-captura">
+      <button class="btn btn-enlace" type="button" data-bs-toggle="collapse" data-bs-target="#panelEventos" aria-expanded="false" aria-controls="panelEventos">
+        DETALLES DE CAPTURA (<span id="contadorEventos">0</span>)
+      </button>
+      <div class="collapse" id="panelEventos">
+        <p class="small text-secundario mt-2 mb-2">Registro de lo detectado y del método usado (OCR, código de barras o manual). Sirve para revisar y depurar lecturas.</p>
+        <ul id="listaEventos" class="lista-eventos"></ul>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-pie container-xl">
+    <span id="empresaPie"></span> · Versión <span id="versionApp"></span> · Los datos se guardan solo en este dispositivo.
+  </footer>
+
+  <!-- Entradas ocultas de cámara / archivos -->
+  <input type="file" id="inputCamara" accept="image/*" capture="environment" hidden>
+  <input type="file" id="inputGaleria" accept="image/*" hidden>
+  <input type="file" id="inputUbicacion" accept="image/*" capture="environment" hidden>
+
+  <!-- ===================== VENTANA: REVISAR / AGREGAR / EDITAR FILA ===================== -->
+  <div class="modal fade" id="modalFila" tabindex="-1" aria-labelledby="filaTitulo" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-4" id="filaTitulo">Revisar etiqueta</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="filaZonaImagen" class="zona-imagen" hidden>
+            <img id="filaVistaPrevia" class="vista-previa" alt="Foto de la etiqueta" hidden>
+            <div class="zona-imagen-controles">
+              <div id="filaProgreso" class="lectura-progreso" hidden>
+                <div id="filaProgresoTexto" class="small mb-1">Procesando…</div>
+                <div class="progress" role="progressbar" aria-label="Avance de lectura">
+                  <div id="filaProgresoBarra" class="progress-bar" style="width:100%"></div>
+                </div>
+                <button type="button" id="filaBtnOmitir" class="btn btn-enlace mt-2 px-0" hidden>Omitir lectura y capturar manualmente</button>
+              </div>
+              <div id="filaResumenLectura" class="resumen-lectura" hidden></div>
+              <div class="d-flex flex-wrap gap-2 align-items-end mt-2">
+                <div class="flex-grow-1">
+                  <label for="filaPerfil" class="form-label small mb-1">Tipo de etiqueta</label>
+                  <select id="filaPerfil" class="form-select"></select>
+                  <div id="filaPerfilDetectado" class="small text-secundario mt-1"></div>
+                </div>
+                <button type="button" id="filaBtnRotar" class="btn btn-secundario">Girar 90° y leer</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="filaErrores"></div>
+          <div id="filaColision" hidden></div>
+
+          <form id="formFila" novalidate autocomplete="off">
+            <div class="row g-3">
+              <div class="col-12 col-md-7">
+                <label for="campoProducto" class="form-label">Producto <span class="insignia" data-fuente="producto" hidden></span></label>
+                <input id="campoProducto" type="text" class="form-control form-control-lg" autocapitalize="characters" spellcheck="false" autocorrect="off" placeholder="Ej. 8717052-2">
+                <div class="nota-campo" data-nota="producto" hidden></div>
+                <div class="alternativas" data-alternativas="producto" hidden></div>
+              </div>
+              <div class="col-8 col-md-3">
+                <label for="campoCantidad" class="form-label">Cantidad <span class="insignia" data-fuente="cantidad" hidden></span></label>
+                <input id="campoCantidad" type="text" inputmode="decimal" class="form-control form-control-lg" placeholder="0">
+                <div class="nota-campo" data-nota="cantidad" hidden></div>
+                <div class="alternativas" data-alternativas="cantidad" hidden></div>
+              </div>
+              <div class="col-4 col-md-2">
+                <label for="campoUnidad" class="form-label">Unidad</label>
+                <input id="campoUnidad" type="text" class="form-control form-control-lg" list="listaUnidades" autocapitalize="characters" spellcheck="false" placeholder="LY">
+                <datalist id="listaUnidades"></datalist>
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="campoLote" class="form-label">Lote <span class="insignia" data-fuente="lote" hidden></span></label>
+                <input id="campoLote" type="text" class="form-control form-control-lg" autocapitalize="characters" spellcheck="false" autocorrect="off" placeholder="Sin lote">
+                <div class="nota-campo" data-nota="lote" hidden></div>
+                <div class="alternativas" data-alternativas="lote" hidden></div>
+              </div>
+              <div class="col-12 col-md-6">
+                <label for="campoDateCode" class="form-label">Date code <span class="insignia" data-fuente="dateCode" hidden></span></label>
+                <input id="campoDateCode" type="text" class="form-control form-control-lg" autocapitalize="characters" spellcheck="false" placeholder="Opcional">
+                <div class="nota-campo" data-nota="dateCode" hidden></div>
+                <div class="alternativas" data-alternativas="dateCode" hidden></div>
+              </div>
+
+              <div class="col-12">
+                <div class="ubicaciones-formulario">
+                  <div class="ubicacion-campo">
+                    <label for="campoOrigen" class="form-label">Ubicación origen</label>
+                    <div class="input-group input-group-lg">
+                      <input id="campoOrigen" type="text" class="form-control" autocapitalize="characters" spellcheck="false" placeholder="Ej. K0104">
+                      <button type="button" id="btnEscanearOrigen" class="btn btn-secundario" aria-label="Escanear ubicación origen">Escanear</button>
+                    </div>
+                  </div>
+                  <div class="ubicacion-a" aria-hidden="true">A</div>
+                  <div class="ubicacion-campo">
+                    <label for="campoDestino" class="form-label">Ubicación destino <span class="text-secundario small">(la confirma el checker)</span></label>
+                    <div class="input-group input-group-lg">
+                      <input id="campoDestino" type="text" class="form-control" autocapitalize="characters" spellcheck="false" placeholder="Destino">
+                      <button type="button" id="btnEscanearDestino" class="btn btn-secundario" aria-label="Escanear ubicación destino">Escanear</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-12">
+                <label for="campoComentarios" class="form-label">Comentarios</label>
+                <textarea id="campoComentarios" class="form-control form-control-lg" rows="2" placeholder="Observaciones (el lote se agrega automáticamente)"></textarea>
+              </div>
+            </div>
+            <button type="submit" hidden></button>
+          </form>
+
+          <div id="filaOtrosDatosZona" class="otros-datos mt-3" hidden>
+            <h3 class="fs-6 mb-2">Otros datos leídos de la etiqueta</h3>
+            <div id="filaOtrosDatos"></div>
+          </div>
+
+          <details id="filaDiagnostico" class="diagnostico-lectura mt-3" hidden>
+            <summary>Ver lo que se leyó (códigos y texto)</summary>
+            <h4 class="fs-6 mt-2">Códigos de barras</h4>
+            <ul id="filaCodigosLeidos" class="small"></ul>
+            <h4 class="fs-6">Texto OCR</h4>
+            <pre id="filaTextoOcr" class="texto-ocr"></pre>
+          </details>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="filaBtnSecundario" class="btn btn-secundario btn-grande">Volver a escanear</button>
+          <button type="button" id="filaBtnEditar" class="btn btn-secundario btn-grande">Editar</button>
+          <button type="button" id="filaBtnPrincipal" class="btn btn-primario btn-grande">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VENTANA: CÁMARA (PC) ===================== -->
+  <div class="modal fade" id="modalCamara" tabindex="-1" aria-labelledby="camaraTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-fullscreen-md-down">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-4" id="camaraTitulo">Escanear etiqueta</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <video id="camaraVideo" class="camara-video" playsinline muted autoplay></video>
+          <p id="camaraEstado" class="camara-estado">Abriendo cámara…</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" id="btnCamaraArchivo" class="btn btn-secundario btn-grande">Elegir foto</button>
+          <button type="button" id="btnTomarFoto" class="btn btn-primario btn-grande" disabled>Tomar foto</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VENTANA: CORREO ===================== -->
+  <div class="modal fade" id="modalCorreo" tabindex="-1" aria-labelledby="correoTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-4" id="correoTitulo">Enviar movimiento</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <label for="correoPara" class="form-label">Correo destino</label>
+          <input id="correoPara" type="email" inputmode="email" class="form-control form-control-lg" autocomplete="email">
+          <div id="correoParaError" class="invalid-feedback"></div>
+          <div class="form-text">Se guarda en este dispositivo para la próxima vez.</div>
+
+          <dl class="correo-resumen mt-3">
+            <dt>Asunto</dt><dd id="correoAsunto"></dd>
+            <dt>Mensaje</dt><dd><pre id="correoCuerpo" class="correo-cuerpo"></pre></dd>
+            <dt>Adjuntos</dt><dd><ul id="correoAdjuntos" class="mb-0 ps-3"></ul></dd>
+          </dl>
+
+          <p id="correoExplicacion" class="correo-explicacion"></p>
+
+          <div class="d-grid gap-2">
+            <button type="button" id="btnCorreoCompartir" class="btn btn-primario btn-grande" hidden>Compartir PDF y Excel</button>
+            <button type="button" id="btnCorreoDescargarExcel" class="btn btn-secundario btn-grande" hidden>Descargar Excel (para adjuntarlo)</button>
+            <button type="button" id="btnCorreoEml" class="btn btn-secundario btn-grande">Crear borrador de Outlook con adjuntos (.eml)</button>
+            <button type="button" id="btnCorreoMailto" class="btn btn-secundario btn-grande">Descargar archivos y abrir correo</button>
+            <button type="button" id="btnCorreoCopiar" class="btn btn-secundario">Copiar destinatario y asunto</button>
+            <button type="button" id="btnCorreoAuto" class="btn btn-primario btn-grande" hidden>Enviar automáticamente</button>
+          </div>
+          <p class="small text-secundario mt-3 mb-0">Un navegador no puede adjuntar archivos por sí solo a un correo ni enviarlo sin su confirmación. Cada opción indica exactamente qué hace.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VENTANA: DOCUMENTO LISTO ===================== -->
+  <div class="modal fade" id="modalDocumento" tabindex="-1" aria-labelledby="documentoTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-4" id="documentoTitulo">Documento listo</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-1 fw-semibold text-break" id="documentoNombre"></p>
+          <p class="mb-2 text-secundario small" id="documentoTamano"></p>
+          <p class="mb-2 small" id="documentoAviso"></p>
+          <p class="mb-0 small text-secundario" id="documentoSinCompartir">Este navegador no permite compartir este tipo de archivo; descárguelo y envíelo desde su carpeta Descargas.</p>
+        </div>
+        <div class="modal-footer flex-wrap">
+          <button type="button" id="docAbrir" class="btn btn-secundario btn-grande">Abrir / imprimir</button>
+          <button type="button" id="docCompartir" class="btn btn-secundario btn-grande">Compartir</button>
+          <button type="button" id="docDescargar" class="btn btn-primario btn-grande">Descargar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VENTANA: CONFIGURACIÓN ===================== -->
+  <div class="modal fade" id="modalConfig" tabindex="-1" aria-labelledby="configTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-md-down">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title fs-4" id="configTitulo">Configuración de este dispositivo</h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <h3 class="fs-5">Correo destino</h3>
+          <div class="input-group input-group-lg">
+            <input id="cfgCorreo" type="email" inputmode="email" class="form-control" placeholder="correo@empresa.com">
+            <button type="button" id="cfgCorreoGuardar" class="btn btn-primario">Guardar</button>
+            <div id="cfgCorreoError" class="invalid-feedback"></div>
+          </div>
+
+          <h3 class="fs-5 mt-4">Logo para PDF y Excel</h3>
+          <p class="small text-secundario mb-2">El logo de pantalla es <code>assets/logo.png</code>. Si al abrir la app como archivo el logo no aparece en los documentos, cárguelo aquí (se guarda solo en este dispositivo).</p>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <label class="btn btn-secundario mb-0" for="cfgLogo">Cargar logo (PNG/JPG)</label>
+            <input type="file" id="cfgLogo" accept="image/png,image/jpeg" hidden>
+            <img id="cfgLogoVista" class="cfg-logo-vista" alt="Logo cargado" hidden>
+            <button type="button" id="cfgLogoQuitar" class="btn btn-enlace" hidden>Quitar</button>
+          </div>
+
+          <h3 class="fs-5 mt-4">Trabajo sin conexión</h3>
+          <p class="small text-secundario mb-2">Prepara el lector de texto para usarlo sin Internet (hágalo una vez con conexión o desde el servidor local).</p>
+          <button type="button" id="cfgPrepararOCR" class="btn btn-secundario">Preparar lector de texto</button>
+
+          <h3 class="fs-5 mt-4">Diagnóstico</h3>
+          <ul id="cfgDiagnostico" class="lista-diagnostico"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===================== VENTANAS GENÉRICAS ===================== -->
+  <div class="modal fade" id="modalConfirmar" tabindex="-1" aria-labelledby="confirmarTitulo" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title fs-4" id="confirmarTitulo">Confirmar</h2></div>
+        <div class="modal-body"><p id="confirmarMensaje" class="mensaje-confirmar mb-0"></p></div>
+        <div class="modal-footer">
+          <button type="button" id="confirmarCancelar" class="btn btn-secundario btn-lg" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" id="confirmarAceptar" class="btn btn-primario btn-lg">Aceptar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalValor" tabindex="-1" aria-labelledby="valorTitulo" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <form class="modal-content" id="formValor" novalidate>
+        <div class="modal-header">
+          <h2 class="modal-title fs-4" id="valorTitulo"></h2>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <label for="valorInput" id="valorEtiqueta" class="form-label"></label>
+          <input id="valorInput" class="form-control form-control-lg" autocomplete="off" autocapitalize="characters" spellcheck="false">
+          <div id="valorError" class="invalid-feedback"></div>
+          <div id="valorAyuda" class="form-text"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secundario btn-lg" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" id="valorAceptar" class="btn btn-primario btn-lg">Aceptar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="zonaToasts" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+  <div id="capaCargando" class="capa-cargando" hidden role="status" aria-live="polite">
+    <div class="capa-cargando-caja">
+      <div class="spinner-border" aria-hidden="true"></div>
+      <span id="capaCargandoTexto">Procesando…</span>
+    </div>
+  </div>
+
+  <!-- ===================== SCRIPTS (todos locales, sin Internet) ===================== -->
+  <!-- 1. Configuración editable -->
+  <script src="config.js"></script>
+  <!-- 2. Bootstrap (ventanas, avisos) -->
+  <script src="libs/bootstrap/bootstrap.bundle.min.js"></script>
+  <!-- 3. Módulos de la app (ExcelJS, jsPDF, ZXing y Tesseract se cargan solo cuando se necesitan) -->
+  <script src="js/utils.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/productos.js"></script>
+  <script src="js/perfiles-etiquetas.js"></script>
+  <script src="js/interprete.js"></script>
+  <script src="js/barcode.js"></script>
+  <script src="js/ocr.js"></script>
+  <script src="js/formulario.js"></script>
+  <script src="js/scanner.js"></script>
+  <script src="js/export-excel.js"></script>
+  <script src="js/export-pdf.js"></script>
+  <script src="js/email.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

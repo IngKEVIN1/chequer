@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pruebas | Reubicación de material</title>
+  <link rel="stylesheet" href="../css/bootstrap.min.css">
+  <style>
+    body { font-family: "Segoe UI", Roboto, Arial, sans-serif; padding: 1.5rem; max-width: 980px; margin: auto; }
+    h1 { font-size: 1.4rem; border-top: 5px solid #E4002B; padding-top: .8rem; }
+    .ok { color: #1E6B3A; font-weight: 700; }
+    .falla { color: #B5001F; font-weight: 700; }
+    td { vertical-align: top; }
+  </style>
+</head>
+<body>
+  <h1>Pruebas automáticas de la lógica</h1>
+  <p>Verifica agrupación por producto y lote, validaciones, cantidades, división de filas, guardado local y lectura de los 4 tipos de etiqueta (con texto de ejemplo). No modifica el movimiento que tenga en curso.</p>
+  <p id="resumen" class="fs-5"></p>
+  <table class="table table-sm">
+    <thead><tr><th>Resultado</th><th>Prueba</th><th>Detalle</th></tr></thead>
+    <tbody id="resultados"></tbody>
+  </table>
+  <p><a href="../index.html">Volver a la aplicación</a></p>
+
+  <script src="../config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script src="../js/storage.js"></script>
+  <script src="../js/productos.js"></script>
+  <script src="../js/perfiles-etiquetas.js"></script>
+  <script src="../js/interprete.js"></script>
+  <script src="casos.js"></script>
+  <script>
+    (function () {
+      var U = window.Reubicacion.Utils;
+      var r = window.Reubicacion.Pruebas.ejecutar();
+      var ok = r.filter(function (x) { return x.ok; }).length;
+      document.getElementById('resumen').innerHTML = '<span class="' + (ok === r.length ? 'ok' : 'falla') + '">' + ok + ' de ' + r.length + ' pruebas correctas</span>';
+      document.getElementById('resultados').innerHTML = r.map(function (x) {
+        return '<tr><td class="' + (x.ok ? 'ok' : 'falla') + '">' + (x.ok ? 'Correcta' : 'Falla') + '</td><td>' +
+          U.escapeHtml(x.nombre) + '</td><td>' + U.escapeHtml(x.detalle) + '</td></tr>';
+      }).join('');
+    })();
+  </script>
+</body>
+</html>
